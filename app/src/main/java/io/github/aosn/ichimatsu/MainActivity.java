@@ -3,6 +3,7 @@ package io.github.aosn.ichimatsu;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -39,33 +40,29 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             public void onClick(View view) {
                 Snackbar.make(view, "他のアクテビティを立ち上げるよ！", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
-                Log.d(TAG, "buttonStartCamera onClick Start");
+                Log.d(TAG, "start ");
                 showCameraPreview();
             }
         });
     }
 
     private void showCameraPreview() {
-        // BEGIN_INCLUDE(startCamera)
-        // Check if the Camera permission has been granted
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
-            // Permission is already available, start camera preview
+            // カメラ周りのパーミッションを持ってたらそのまま実行
             Snackbar.make(mLayout,
                     "Camera permission is available. Starting preview.",
                     Snackbar.LENGTH_SHORT).show();
             startCamera();
         } else {
-            // Permission is missing and must be requested.
+            // パーミッションを持ってなかったら、取得するダイアログを表示
             requestCameraPermission();
         }
-        // END_INCLUDE(startCamera)
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions,
                                            int[] grantResults) {
-        // BEGIN_INCLUDE(onRequestPermissionsResult)
         if (requestCode == PERMISSION_REQUEST_CAMERA) {
             // Request for camera permission.
             if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -81,28 +78,23 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
                         .show();
             }
         }
-        // END_INCLUDE(onRequestPermissionsResult)
     }
 
 
     private void startCamera() {
         new IntentIntegrator(MainActivity.this).initiateScan();
-//        Intent intent = new Intent(this, CameraPreviewActivity.class);
-//        startActivity(intent);
-    }
+   }
 
+    /**
+     * カメラのパーミッション要求箇所
+     */
     private void requestCameraPermission() {
-        // Permission has not been granted and must be requested.
         if (ActivityCompat.shouldShowRequestPermissionRationale(this,
                 Manifest.permission.CAMERA)) {
-            // Provide an additional rationale to the user if the permission was not granted
-            // and the user would benefit from additional context for the use of the permission.
-            // Display a SnackBar with a button to request the missing permission.
             Snackbar.make(mLayout, "Camera access is required to display the camera preview.",
                     Snackbar.LENGTH_INDEFINITE).setAction("OK", new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    // Request the permission
                     ActivityCompat.requestPermissions(MainActivity.this,
                             new String[]{Manifest.permission.CAMERA},
                             PERMISSION_REQUEST_CAMERA);
@@ -113,7 +105,6 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             Snackbar.make(mLayout,
                     "Permission is not available. Requesting camera permission.",
                     Snackbar.LENGTH_SHORT).show();
-            // Request the permission. The result will be received in onRequestPermissionResult().
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
                     PERMISSION_REQUEST_CAMERA);
         }
@@ -122,10 +113,12 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Zebra clossing のIntent が帰ってきた場合に読み込まれるメソッド
+
         Log.d(TAG, "onActivityResult Start");
         Log.d(TAG, "requestCode: " + requestCode + " resultCode: " + resultCode + " data: " + data);
         IntentResult intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-        // 奇妙なことに null の場合
+
         if (intentResult == null) {
             Log.d(TAG, "Weird");
             super.onActivityResult(requestCode, resultCode, data);
@@ -141,14 +134,18 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
             Log.d(TAG, "Scanned");
             TextView textViewScannedData = (TextView) findViewById(R.id.textViewScannedData);
             textViewScannedData.setText(intentResult.getContents());
+
+            String isbn_number = intentResult.getContents();
+            openAddBookInBrowser(isbn_number);
         }
     }
 
-
-
-
-
-
+    private void openAddBookInBrowser(String isbn_number) {
+        // TODO URLをプロパティ化
+        Uri uri = Uri.parse("http://vote.tasktoys.com/#!add-book/"+isbn_number);
+        Intent i = new Intent(Intent.ACTION_VIEW,uri);
+        startActivity(i);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -160,12 +157,8 @@ public class MainActivity extends AppCompatActivity implements ActivityCompat.On
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         Log.d(TAG,"select");
-        //noinspection SimplifiableIfStatement
 
         if (id == R.id.action_settings) {
             return true;
